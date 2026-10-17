@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rootcause-org/rootcause-embassy-go/internal/uuid"
+	"github.com/replypen/replypen-embassy-go/internal/uuid"
 )
 
 // maxInvocationBytes bounds what we will read off an unauthenticated connection.

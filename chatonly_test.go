@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/rootcause-org/rootcause-embassy-go/chat"
+	"github.com/replypen/replypen-embassy-go/chat"
 )
 
 func TestDisabledActionRoutesExplainHowToEnableThem(t *testing.T) {

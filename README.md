@@ -1,27 +1,32 @@
-# rootcause-embassy-go
+# replypen-embassy-go
 
-The Go **Embassy**: rootcause's trusted in-app presence inside your own Go service.
+The Go **Embassy**: ReplyPen's trusted in-app presence inside your own Go service.
 
 It does four things, all on your side of the wire:
 
-1. **Chat** — mint the short-lived token that lets a logged-in user chat with rootcause in your UI.
-2. **Actions** — rootcause sends a signed, **digest-pinned** invocation; you run the approved script
+1. **Chat** — mint the short-lived token that lets a logged-in user chat with ReplyPen in your UI.
+2. **Actions** — ReplyPen sends a signed, **digest-pinned** invocation; you run the approved script
    against your own production and answer with a signed structured result.
-3. **Analysis** — your code asks rootcause *"analyze this"* and gets the drafted answer back later on
+3. **Analysis** — your code asks ReplyPen *"analyze this"* and gets the drafted answer back later on
    a route you mount. No polling, no callback rig of your own.
-4. **API** — call any rootcause API endpoint, bearer auth handled for you.
+4. **API** — call any ReplyPen API endpoint, bearer auth handled for you.
 
 Dependencies: the Go standard library and [yaegi](https://github.com/traefik/yaegi) (the script
 interpreter). Nothing else.
 
-The wire contract is owned by [`rootcause-embassy`](https://github.com/rootcause-org/rootcause-embassy);
+The wire contract is owned by [`replypen-embassy`](https://github.com/replypen/replypen-embassy);
 this package conforms to it and replays its fixtures in CI.
 
 ## Install
 
 ```sh
-go get github.com/rootcause-org/rootcause-embassy-go
+go get github.com/replypen/replypen-embassy-go
 ```
+
+Renamed from `github.com/rootcause-org/rootcause-embassy-go` (tags up to v0.6.0 stay on the Go proxy
+under that path). To move: change the `require` and every import to the new path. Config reads
+`REPLYPEN_*` env first and still falls back to the legacy `ROOTCAUSE_*` names; chat tokens now carry
+`aud` `replypen:chat:<project>` (the host accepts both).
 
 ## Chat quickstart
 
@@ -35,14 +40,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/rootcause-org/rootcause-embassy-go"
-	"github.com/rootcause-org/rootcause-embassy-go/chat"
+	"github.com/replypen/replypen-embassy-go"
+	"github.com/replypen/replypen-embassy-go/chat"
 )
 
 func newEmbassy() (*embassy.Embassy, error) {
 	emb, err := embassy.New(embassy.Config{
-		ChatSecret:  os.Getenv("ROOTCAUSE_CHAT_SECRET"),
-		ChatProject: os.Getenv("ROOTCAUSE_CHAT_PROJECT"),
+		ChatSecret:  os.Getenv("REPLYPEN_CHAT_SECRET"),
+		ChatProject: os.Getenv("REPLYPEN_CHAT_PROJECT"),
 	})
 	if err != nil {
 		return nil, err
@@ -77,19 +82,19 @@ if errors.As(err, &embassyErr) {
 ```
 
 Meaning, self-fix steps, verification, and escalation live in the public
-[integrator guides](https://github.com/rootcause-org/rootcause-embassy/tree/main/docs/integrator).
+[integrator guides](https://github.com/replypen/replypen-embassy/tree/main/docs/integrator).
 
 ## Add actions and analysis later
 
-Add `ROOTCAUSE_ACTION_SECRET` plus `ROOTCAUSE_FETCH_URL`; `New` then validates the action plane
+Add `REPLYPEN_ACTION_SECRET` plus `REPLYPEN_FETCH_URL`; `New` then validates the action plane
 fail-closed. The chat and action secrets are different privilege boundaries and must differ.
 
 ```go
 emb, err := embassy.New(embassy.Config{
-	ChatSecret:  os.Getenv("ROOTCAUSE_CHAT_SECRET"),
-	ChatProject: os.Getenv("ROOTCAUSE_CHAT_PROJECT"),
-	Secret:      os.Getenv("ROOTCAUSE_ACTION_SECRET"),
-	FetchURL:    os.Getenv("ROOTCAUSE_FETCH_URL"),
+	ChatSecret:  os.Getenv("REPLYPEN_CHAT_SECRET"),
+	ChatProject: os.Getenv("REPLYPEN_CHAT_PROJECT"),
+	Secret:      os.Getenv("REPLYPEN_ACTION_SECRET"),
+	FetchURL:    os.Getenv("REPLYPEN_FETCH_URL"),
 	ResultHandler: handleAnalysisResult,
 	Symbols: map[string]any{"DB": db, "Mailer": mailer},
 })
@@ -106,14 +111,15 @@ UUID and health signs its raw `?project_id=<uuid>` query.
 
 Set `RequireTenantContext: true` to refuse a signed invocation that carries no tenant tuple, before
 script resolution. A deployment that also serves a genuinely flat project may exempt selected action
-ids with `TenantlessActions` (env `ROOTCAUSE_TENANTLESS_ACTIONS`, comma-separated): a listed id is
+ids with `TenantlessActions` (env `REPLYPEN_TENANTLESS_ACTIONS`, comma-separated): a listed id is
 accepted with no tuple at all, a partial tuple still refuses, and every unlisted action stays strict.
 Ids used this way must be globally unique across the projects sharing the reverse secret.
 
 ## Writing an action script
 
-An action script is ordinary Go source that rootcause stores in your project's brain and pins by
-digest. Convention:
+An action script is ordinary Go source that ReplyPen stores in your project's brain and pins by
+digest (scripts importing the old `github.com/rootcause-org/rootcause-embassy-go` path still run).
+Convention:
 
 - package `action`
 - one exported `func Run(a embassy.ActionAPI, params map[string]any) (any, error)`
@@ -125,7 +131,7 @@ package action
 import (
 	"fmt"
 
-	"github.com/rootcause-org/rootcause-embassy-go"
+	"github.com/replypen/replypen-embassy-go"
 	"rcsymbols" // whatever you registered in Config.Symbols
 )
 
@@ -212,7 +218,7 @@ leaves time for a signed answer inside the host's 25s one-shot wait.
 - **This is not a sandbox.** A script runs as your app, with your privileges, over yaegi's standard
   library. The boundary is: digest-pinned approved scripts only, signature + replay, params as data,
   and an audit trail on both sides.
-- **Restrict the mount at the edge.** Both routes only ever talk to rootcause — allowlist its egress
+- **Restrict the mount at the edge.** Both routes only ever talk to ReplyPen — allowlist its egress
   IP in your load balancer / firewall and keep the HMAC as defense in depth.
 - **The timeout is a backstop, not a transaction boundary.** It can fire mid-transaction. Actions must
   be idempotent and safe to re-run.
@@ -231,7 +237,7 @@ analysis, err := emb.StartAnalysis(ctx, embassy.AnalysisRequest{
 	Metadata: map[string]any{"resource_type": "SupportTicket", "resource_id": ticket.ID},
 	// Optional: continue a conversation. Send ONLY the new message — the host keeps
 	// the prior turns.
-	SessionID: ticket.RootcauseSessionID,
+	SessionID: ticket.ReplyPenSessionID,
 	// Optional: assert WHO this is on behalf of, from your OWN authenticated session.
 	// Never from model output, never from user input.
 	Principal: &embassy.Principal{Kind: "acme_admin", ExternalID: user.ID, Assurance: "session"},
@@ -248,7 +254,7 @@ The answer arrives later on your result route:
 ```go
 func handleAnalysisResult(result embassy.Result) error {
 	// MUST be idempotent — upsert by AnalysisID or Metadata, never blind-insert. An
-	// error here is deliberately not an ack, so rootcause redelivers.
+	// error here is deliberately not an ack, so ReplyPen redelivers.
 	ticket := findTicket(result.Metadata["resource_id"])
 	ticket.Draft = result.Draft        // markdown
 	ticket.Summary = result.Note       // the summary note, markdown
@@ -271,9 +277,9 @@ When a human sends the reply — and/or answers the run's questions — hand it 
 ```go
 emb.CaptureSentMessage(ctx, embassy.SentMessageRequest{
 	ProjectID:    ticket.ProjectID, // required when Config.Secrets is used
-	SessionID:    ticket.RootcauseSessionID,
+	SessionID:    ticket.ReplyPenSessionID,
 	SentBody:     reply.Body,       // what actually left the building
-	ProposedBody: ticket.Draft,     // what rootcause proposed; omit for pure signal
+	ProposedBody: ticket.Draft,     // what ReplyPen proposed; omit for pure signal
 	Sender:       agent.Name,
 	Metadata:     embassy.SentMessageMetadata{ResourceType: "SupportTicket", ResourceID: ticket.ID},
 	Answers:      []embassy.Answer{{ID: "country", Values: []string{"BE"}}},
@@ -282,7 +288,7 @@ emb.CaptureSentMessage(ctx, embassy.SentMessageRequest{
 
 `Metadata` here is **not** free-form: exactly `ResourceType` + `ResourceID` (the host strict-decodes).
 
-## Call any rootcause endpoint (the API plane)
+## Call any ReplyPen endpoint (the API plane)
 
 Generic by design — transport and auth only, so a new host endpoint works the day it ships.
 
@@ -325,7 +331,7 @@ derive both from the authenticated server session and use one kind declared by t
 Generated tags use loader `?v=5`. Register `RootCause('boot', {getPageContext: () => markdown})`
 before the loader executes to describe the current UI per message. The hosted client preserves
 each submission's snapshot through queueing and retries; context is an untrusted hint.
-See the [page context contract](https://github.com/rootcause-org/rootcause-embassy/blob/main/planes/chat.md#page-context-page_url-page_context).
+See the [page context contract](https://github.com/replypen/replypen-embassy/blob/main/planes/chat.md#page-context-page_url-page_context).
 
 To let the agent call your own API as the chatting user, pass a token scoped to exactly that user in
 `Claims.Credentials` (env name → value, e.g. `ACME_AGENT_TOKEN`, `ACME_API_BASE`). Every run of that
@@ -351,7 +357,7 @@ func (r redisNonces) Delete(nonce string) {
 }
 ```
 
-`Delete` matters: the result route releases a nonce whose handler dispatch failed, so rootcause's
+`Delete` matters: the result route releases a nonce whose handler dispatch failed, so ReplyPen's
 redelivery is really processed instead of silently acked.
 
 Script bodies are cached per digest in memory (and on disk when `CacheDir` is set) and re-hashed on

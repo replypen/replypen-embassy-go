@@ -1,9 +1,9 @@
-// Package embassy is rootcause's trusted in-app presence in a customer's own Go
+// Package embassy is ReplyPen's trusted in-app presence in a customer's own Go
 // runtime: it executes digest-pinned actions against the app's own production,
 // triggers async analyses, receives their results, and mints embedded-chat tokens.
 //
 // Four planes, three keys, one contract — see
-// https://github.com/rootcause-org/rootcause-embassy (CONTRACT.md) for the
+// https://github.com/replypen/replypen-embassy (CONTRACT.md) for the
 // authoritative wire spec that this package conforms to.
 //
 //	emb, err := embassy.New(embassy.Config{ResultHandler: handleResult})
@@ -45,11 +45,11 @@ func (e *Embassy) Config() Config { return *e.cfg }
 // ActionPlaneEnabled reports whether action/analysis secrets were configured.
 func (e *Embassy) ActionPlaneEnabled() bool { return e.cfg.actionEnabled() }
 
-// API is the generic authenticated caller for any rootcause backend endpoint.
+// API is the generic authenticated caller for any ReplyPen backend endpoint.
 // Bearer auth on a THIRD key, never the HMAC secret.
 func (e *Embassy) API() *API { return e.api }
 
-// APIFor builds a caller for ANOTHER project: rootcause refresh tokens are
+// APIFor builds a caller for ANOTHER project: ReplyPen refresh tokens are
 // project-pinned, so an app spanning several projects holds one credential each
 // and their token caches never mix.
 //

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rootcause-org/rootcause-embassy-go/chat"
+	"github.com/replypen/replypen-embassy-go/chat"
 )
 
 const secret = "contract-chat-secret"
@@ -64,7 +64,7 @@ func TestMintDefaultsAndVerification(t *testing.T) {
 	}
 	claims := verify(t, token, secret)
 
-	if claims["aud"] != "rootcause:chat:acme" || claims["iss"] != "acme" {
+	if claims["aud"] != "replypen:chat:acme" || claims["iss"] != "acme" {
 		t.Fatalf("aud/iss = %v %v", claims["aud"], claims["iss"])
 	}
 	if claims["jti"] == "" || claims["exp"] == nil {

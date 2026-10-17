@@ -3,7 +3,7 @@ package embassy
 import (
 	"fmt"
 
-	"github.com/rootcause-org/rootcause-embassy-go/internal/rcerr"
+	"github.com/replypen/replypen-embassy-go/internal/rcerr"
 )
 
 // Error is a stable, customer-facing failure. ErrorCode is exposed through Code()

@@ -2,7 +2,7 @@
 // fixtures are the required minimum; ports add code/hint/docs diagnostics.
 //
 // The fixtures in testdata/ are VENDORED from
-// https://github.com/rootcause-org/rootcause-embassy — never edited here. When the
+// https://github.com/replypen/replypen-embassy — never edited here. When the
 // hub changes, re-copy the directory and update testdata/HUB_SHA.
 package contract_test
 
@@ -17,12 +17,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	embassy "github.com/rootcause-org/rootcause-embassy-go"
-	"github.com/rootcause-org/rootcause-embassy-go/chat"
+	embassy "github.com/replypen/replypen-embassy-go"
+	"github.com/replypen/replypen-embassy-go/chat"
 )
 
 const (
@@ -41,7 +42,7 @@ var referenceClock = time.Unix(1781913600, 0).UTC()
 // the wire shapes are what conformance pins, not the script language.
 const goScript = `package action
 
-import emb "github.com/rootcause-org/rootcause-embassy-go"
+import emb "github.com/replypen/replypen-embassy-go"
 
 func Run(a emb.ActionAPI, params map[string]any) (any, error) {
 	slug := ""
@@ -60,7 +61,7 @@ const principalScript = `package action
 
 import (
 	"os"
-	emb "github.com/rootcause-org/rootcause-embassy-go"
+	emb "github.com/replypen/replypen-embassy-go"
 )
 
 func Run(a emb.ActionAPI, params map[string]any) (any, error) {
@@ -88,7 +89,7 @@ func TestMain(m *testing.M) {
 		fmt.Println("SYNC: testdata/HUB_SHA missing — fixtures are unsynced")
 		os.Exit(1)
 	}
-	fmt.Printf("SYNC: fixtures vendored from rootcause-embassy commit %s\n", strings.TrimSpace(string(sha)))
+	fmt.Printf("SYNC: fixtures vendored from replypen-embassy commit %s\n", strings.TrimSpace(string(sha)))
 	os.Exit(m.Run())
 }
 
@@ -507,7 +508,7 @@ const actionRunScript = `package action
 
 import (
 	"os"
-	emb "github.com/rootcause-org/rootcause-embassy-go"
+	emb "github.com/replypen/replypen-embassy-go"
 )
 
 func Run(a emb.ActionAPI, params map[string]any) (any, error) {
@@ -658,7 +659,7 @@ func TestUnsupportedInlineAttachmentsRefuseBeforeFetchOrExecution(t *testing.T) 
 				marker := filepath.Join(t.TempDir(), "executed")
 				script := fmt.Sprintf(`package action
 import "os"
-import emb "github.com/rootcause-org/rootcause-embassy-go"
+import emb "github.com/replypen/replypen-embassy-go"
 func Run(a emb.ActionAPI, params map[string]any) (any, error) {
     return nil, os.WriteFile(%q, []byte("executed"), 0600)
 }`, marker)
@@ -1386,18 +1387,38 @@ func assertOutbound(t *testing.T, host *fakeHost, golden []byte) {
 	}
 }
 
-// 6. Chat — replay the JWT vector to the EXACT token string.
-func TestChatJWTVector(t *testing.T) {
-	var vector struct {
-		Secret       string `json:"secret"`
-		NowUnix      int64  `json:"now_unix"`
-		TTLSeconds   int64  `json:"ttl_seconds"`
-		SigningInput string `json:"signing_input"`
-		Token        string `json:"token"`
-		ClaimsJSON   string `json:"claims_json"`
-	}
-	if err := json.Unmarshal(fixture(t, "chat/jwt_vector.json"), &vector); err != nil {
+type jwtVector struct {
+	Secret       string `json:"secret"`
+	NowUnix      int64  `json:"now_unix"`
+	TTLSeconds   int64  `json:"ttl_seconds"`
+	SigningInput string `json:"signing_input"`
+	Token        string `json:"token"`
+	ClaimsJSON   string `json:"claims_json"`
+}
+
+func loadJWTVector(t *testing.T, name string) jwtVector {
+	t.Helper()
+	var vector jwtVector
+	if err := json.Unmarshal(fixture(t, "chat/"+name), &vector); err != nil {
 		t.Fatal(err)
+	}
+	return vector
+}
+
+// 6. Chat — replay the JWT vector to the EXACT token string. Mint emits the
+// replypen aud; the legacy rootcause-aud twins are replayed by the chat package's
+// own test against its HS256 primitive, and must differ from these only in aud.
+func TestChatJWTVector(t *testing.T) {
+	vector := loadJWTVector(t, "jwt_vector_replypen.json")
+	legacy := loadJWTVector(t, "jwt_vector.json")
+	for _, pair := range [][2]string{
+		{"jwt_vector.json", "jwt_vector_replypen.json"},
+		{"jwt_vector_credentials.json", "jwt_vector_credentials_replypen.json"},
+	} {
+		old, current := loadJWTVector(t, pair[0]), loadJWTVector(t, pair[1])
+		if strings.Replace(old.ClaimsJSON, `"aud":"rootcause:chat:acme"`, `"aud":`+strconv.Quote(chat.Audience("acme")), 1) != current.ClaimsJSON {
+			t.Fatalf("%s and %s must differ only in aud", pair[0], pair[1])
+		}
 	}
 	if vector.Secret != chatSecretKey {
 		t.Fatalf("vector secret = %q", vector.Secret)
@@ -1430,7 +1451,7 @@ func TestChatJWTVector(t *testing.T) {
 		TTLSeconds int64  `json:"ttl_seconds"`
 		Token      string `json:"token"`
 	}{}
-	if err := json.Unmarshal(fixture(t, "chat/jwt_vector_credentials.json"), &credentialsVector); err != nil {
+	if err := json.Unmarshal(fixture(t, "chat/jwt_vector_credentials_replypen.json"), &credentialsVector); err != nil {
 		t.Fatal(err)
 	}
 	credentialed, err := chat.MintEmbedToken(vector.Secret, chat.Claims{
@@ -1459,7 +1480,7 @@ func TestChatJWTVector(t *testing.T) {
 	tag, err := chat.WidgetTagHTML(chat.Widget{
 		BaseURL:     "https://app.replypen.com",
 		Project:     "acme",
-		Token:       token,
+		Token:       legacy.Token, // the fixture embeds the legacy token as opaque bytes
 		Mode:        "page",
 		Target:      "#rc-chat",
 		Locale:      "nl",

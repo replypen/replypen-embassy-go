@@ -24,7 +24,7 @@ func newTestExecutor(t *testing.T, symbols map[string]any) *executor {
 
 const echoScript = `package action
 
-import emb "github.com/rootcause-org/rootcause-embassy-go"
+import emb "github.com/replypen/replypen-embassy-go"
 
 func Run(a emb.ActionAPI, params map[string]any) (any, error) {
 	a.Out().Write([]byte("hello"))
@@ -34,9 +34,21 @@ func Run(a emb.ActionAPI, params map[string]any) (any, error) {
 
 // Params are DATA: a value that looks like code is an inert string.
 const echoNameScript = `package action
+import emb "github.com/replypen/replypen-embassy-go"
+func Run(a emb.ActionAPI, params map[string]any) (any, error) { return params["name"], nil }
+`
+
+// A script pinned before the module rename imports the old path and must still run.
+func TestExecutorAcceptsLegacyImportPath(t *testing.T) {
+	const legacyScript = `package action
 import emb "github.com/rootcause-org/rootcause-embassy-go"
 func Run(a emb.ActionAPI, params map[string]any) (any, error) { return params["name"], nil }
 `
+	got := runScript(t, newTestExecutor(t, nil), legacyScript, map[string]any{"name": "ok"})
+	if !got.ok || got.returnValue != "ok" {
+		t.Fatalf("legacy import path: %+v", got)
+	}
+}
 
 func TestExecutorRunsAndCaptures(t *testing.T) {
 	codeLike := `"; os.Exit(1); "`
@@ -76,7 +88,7 @@ func TestExecutorRunsAndCaptures(t *testing.T) {
 func TestExecutorCapsStdout(t *testing.T) {
 	const chatty = `package action
 
-import emb "github.com/rootcause-org/rootcause-embassy-go"
+import emb "github.com/replypen/replypen-embassy-go"
 
 func Run(a emb.ActionAPI, params map[string]any) (any, error) {
 	for i := 0; i < 100; i++ {
@@ -102,7 +114,7 @@ func TestExecutorFailureModes(t *testing.T) {
 		{
 			name: "a returned error is a structured failure",
 			script: `package action
-import ("errors"; emb "github.com/rootcause-org/rootcause-embassy-go")
+import ("errors"; emb "github.com/replypen/replypen-embassy-go")
 func Run(a emb.ActionAPI, params map[string]any) (any, error) { return nil, errors.New("nope") }
 `,
 			wantClass: "error",
@@ -110,7 +122,7 @@ func Run(a emb.ActionAPI, params map[string]any) (any, error) { return nil, erro
 		{
 			name: "a panic never crashes the process",
 			script: `package action
-import emb "github.com/rootcause-org/rootcause-embassy-go"
+import emb "github.com/replypen/replypen-embassy-go"
 func Run(a emb.ActionAPI, params map[string]any) (any, error) { panic("boom") }
 `,
 			wantClass: "panic",
@@ -118,7 +130,7 @@ func Run(a emb.ActionAPI, params map[string]any) (any, error) { panic("boom") }
 		{
 			name: "a non-serializable return value is a failed run",
 			script: `package action
-import emb "github.com/rootcause-org/rootcause-embassy-go"
+import emb "github.com/replypen/replypen-embassy-go"
 func Run(a emb.ActionAPI, params map[string]any) (any, error) { return func() {}, nil }
 `,
 			wantClass: "non_serializable_result",
@@ -145,7 +157,7 @@ func Run( { }
 // The deadline must actually interrupt a running script, not just report late.
 func TestExecutorDeadlineInterrupts(t *testing.T) {
 	const spin = `package action
-import emb "github.com/rootcause-org/rootcause-embassy-go"
+import emb "github.com/replypen/replypen-embassy-go"
 func Run(a emb.ActionAPI, params map[string]any) (any, error) {
 	for {
 	}
@@ -170,7 +182,7 @@ func Run(a emb.ActionAPI, params map[string]any) (any, error) {
 // NEXT run's result slots.
 func TestExecutorDoesNotReuseATimedOutProgram(t *testing.T) {
 	const slow = `package action
-import ("time"; emb "github.com/rootcause-org/rootcause-embassy-go")
+import ("time"; emb "github.com/replypen/replypen-embassy-go")
 func Run(a emb.ActionAPI, params map[string]any) (any, error) {
 	if params["slow"] == true {
 		time.Sleep(2 * time.Second)
@@ -201,7 +213,7 @@ func TestExecutorExposesSymbols(t *testing.T) {
 	const usesSymbols = `package action
 
 import (
-	emb "github.com/rootcause-org/rootcause-embassy-go"
+	emb "github.com/replypen/replypen-embassy-go"
 	"rcsymbols"
 )
 
@@ -223,7 +235,7 @@ func Run(a emb.ActionAPI, params map[string]any) (any, error) {
 func TestExecutorConcurrentTenantIsolation(t *testing.T) {
 	const tenantScript = `package action
 
-import emb "github.com/rootcause-org/rootcause-embassy-go"
+import emb "github.com/replypen/replypen-embassy-go"
 
 func Run(a emb.ActionAPI, params map[string]any) (any, error) {
 	t := a.Tenant()

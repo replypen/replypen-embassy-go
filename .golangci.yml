@@ -17,7 +17,7 @@ linters:
           allow:
             - $gostd
             - github.com/traefik/yaegi
-            - github.com/rootcause-org/rootcause-embassy-go
+            - github.com/replypen/replypen-embassy-go
     forbidigo:
       forbid:
         - pattern: ^fmt\.Print.*$

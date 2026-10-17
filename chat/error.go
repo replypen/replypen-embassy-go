@@ -1,6 +1,6 @@
 package chat
 
-import "github.com/rootcause-org/rootcause-embassy-go/internal/rcerr"
+import "github.com/replypen/replypen-embassy-go/internal/rcerr"
 
 // Error is a stable chat integration failure. Use errors.As and Code() instead of
 // matching Error() text. It is the same type the root package exposes as

@@ -1,8 +1,8 @@
-// Package chat is the MINT side of rootcause's embedded-chat trust boundary.
+// Package chat is the MINT side of ReplyPen's embedded-chat trust boundary.
 //
 // Your backend mints a short-lived HS256 token asserting who is chatting when the
 // project declares principal kinds (and, on a tenant-enabled project, inside which
-// tenant); rootcause only ever VERIFIES it.
+// tenant); ReplyPen only ever VERIFIES it.
 // The browser never sees the key, so it cannot mint a token for another user,
 // tenant, origin or a later expiry.
 //
@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rootcause-org/rootcause-embassy-go/internal/rcerr"
-	"github.com/rootcause-org/rootcause-embassy-go/internal/uuid"
+	"github.com/replypen/replypen-embassy-go/internal/rcerr"
+	"github.com/replypen/replypen-embassy-go/internal/uuid"
 )
 
 // DefaultTTL is the token lifetime the host is tuned for. The jti is single-use
@@ -61,10 +61,10 @@ var credentialKey = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
 // Claims is what the token asserts. Every field is inside the signature, so a
 // swapped tenant or origin is a broken token.
 type Claims struct {
-	// Project is the rootcause project name: it fixes both `iss` and
-	// `aud` (rootcause:chat:<project>).
+	// Project is the ReplyPen project name: it fixes both `iss` and
+	// `aud` (replypen:chat:<project>).
 	Project string
-	// ExternalID is the opaque, stable user id rootcause anchors a conversation to
+	// ExternalID is the opaque, stable user id ReplyPen anchors a conversation to
 	// — never a name or an email. Leave ExternalID and Kind both empty only when
 	// the ReplyPen project declares no principal kinds.
 	ExternalID string
@@ -73,7 +73,7 @@ type Claims struct {
 	// Origin is the browser Origin the token is pinned to. The host compares it
 	// byte-for-byte with the request's Origin header.
 	Origin string
-	// Tenant is the rootcause tenant SLUG. It must come from your server-side
+	// Tenant is the ReplyPen tenant SLUG. It must come from your server-side
 	// authorized tenant context, never from client input.
 	Tenant string
 	// Locale and ColorScheme are presentation hints only — they grant nothing.
@@ -200,9 +200,13 @@ func MintEmbedToken(secret string, claims Claims) (string, error) {
 	// host-side — never let alg pick the verifier.
 	header := []byte(`{"alg":"HS256","typ":"JWT"}`)
 	signingInput := b64(header) + "." + b64(body)
+	return signingInput + "." + signHS256(secret, signingInput), nil
+}
+
+func signHS256(secret, signingInput string) string {
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(signingInput))
-	return signingInput + "." + b64(mac.Sum(nil)), nil
+	return b64(mac.Sum(nil))
 }
 
 func validateCredentials(credentials map[string]string) error {
@@ -224,8 +228,9 @@ func validateCredentials(credentials map[string]string) error {
 	return nil
 }
 
-// Audience is the host's required `aud` for a project's embed token.
-func Audience(project string) string { return "rootcause:chat:" + project }
+// Audience is the `aud` minted for a project's embed token. The host also still
+// accepts the legacy "rootcause:chat:<project>" from older Embassy versions.
+func Audience(project string) string { return "replypen:chat:" + project }
 
 // Widget describes the loader <script> tag.
 type Widget struct {

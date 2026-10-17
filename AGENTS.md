@@ -1,16 +1,16 @@
-# rootcause-embassy-go — agent map
+# replypen-embassy-go — agent map
 
 The Go Embassy. Customer-facing usage is in [README.md](README.md); this file is the repo map and the
 rules an agent changing it must follow.
 
 ## Domain taxonomy
 
-Use the [Rootcause taxonomy](https://github.com/rootcause-org/rootcause/blob/main/AGENTS.md#taxonomy)
-for shared domain terms and the [Embassy contract](https://github.com/rootcause-org/rootcause-embassy/blob/main/CONTRACT.md)
+Use the [ReplyPen taxonomy](https://github.com/replypen/replypen/blob/main/AGENTS.md#taxonomy)
+for shared domain terms and the [Embassy contract](https://github.com/replypen/replypen-embassy/blob/main/CONTRACT.md)
 for wire vocabulary. Go-specific distinctions:
 
 - **`ActionAPI`** ([executor.go](executor.go)) — a script's trusted scope, deadline and captured
-  output; **`API`** ([api.go](api.go)) is the authenticated HTTP caller to Rootcause.
+  output; **`API`** ([api.go](api.go)) is the authenticated HTTP caller to ReplyPen.
 - **`Principal`** ([client.go](client.go)) — the customer's identity assertion sent with analysis;
   **`PrincipalContext`** ([principal.go](principal.go)) is the host-resolved identity and typed claims
   exposed to an action script.
@@ -19,7 +19,7 @@ for wire vocabulary. Go-specific distinctions:
 
 ## The contract lives elsewhere
 
-**`~/code/rootcause-org/rootcause-embassy` is the authority** for every wire question: `CONTRACT.md`,
+**The hub ([`replypen/replypen-embassy`](https://github.com/replypen/replypen-embassy), local checkout `~/code/rootcause-org/rootcause-embassy`) is the authority** for every wire question: `CONTRACT.md`,
 `planes/{actions,analysis,chat,api}.md`, `decisions.md`, `fixtures/`.
 
 - A behavior/wire change starts THERE — edit the contract and the fixtures first, then conform here.
@@ -33,7 +33,7 @@ for wire vocabulary. Go-specific distinctions:
 | File | What it owns |
 |---|---|
 | `embassy.go` | `New`, the facade, `API()` / `APIFor()` |
-| `config.go` | every knob, `ROOTCAUSE_*` env fallbacks, fail-closed boot validation |
+| `config.go` | every knob, `REPLYPEN_*` env (then legacy `ROOTCAUSE_*`) fallbacks, fail-closed boot validation |
 | `secrets.go` | the decision-14 selector: signed `project_id` → reverse secret, for every HMAC direction |
 | `errors.go` | the customer-facing `Error`, the signed refusal classes, the code→hint lookup |
 | `httpx.go` | the one outbound HTTP call, and the four response read caps in one table |
@@ -82,6 +82,15 @@ for wire vocabulary. Go-specific distinctions:
   `script_error`, `error`, `compile_error`, `non_serializable_result`) are Go-local, the way Ruby's are
   Ruby class names. The closed vocabulary in `CONTRACT.md` governs REFUSALS — hub decision 6e now says
   so explicitly, so this is sanctioned, not a deviation to reconcile.
+
+## Legacy names kept
+
+- `/rootcause/action`, `/rootcause/result` mount paths — wire contract; the host calls them on deployed apps.
+- `ROOTCAUSE_*` env — read after `REPLYPEN_*` (`config.go` `env`), so deployed integrations keep booting.
+- `github.com/rootcause-org/rootcause-embassy-go` as a yaegi import path — digest-pinned scripts import it.
+- `rcor_`/`rcoa_` token ids, `RC_*` script env, `data-rc-*` attributes, `window.RootCause` — wire / host-owned loader.
+- `internal/rcerr` package name — internal only, not integrator-visible.
+- Legacy `rootcause:chat:` JWT vectors — replayed as verify goldens; mint emits `replypen:chat:`.
 
 ## Open questions for the hub
 

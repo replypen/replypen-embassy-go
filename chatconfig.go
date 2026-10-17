@@ -1,7 +1,7 @@
 package embassy
 
 import (
-	"github.com/rootcause-org/rootcause-embassy-go/chat"
+	"github.com/replypen/replypen-embassy-go/chat"
 )
 
 // MintChatToken mints an embed-chat token from the configured chat credentials.

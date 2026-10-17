@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/rootcause-org/rootcause-embassy-go/internal/uuid"
+	"github.com/replypen/replypen-embassy-go/internal/uuid"
 )
 
 // decodeJSONObject decodes into a generic map with UseNumber, so an integer param
@@ -86,7 +86,7 @@ func (e *Embassy) logger() *slog.Logger { return e.cfg.logger() }
 // logInvocation records identifiers and shape only: action_id, digest, param KEYS,
 // ok, duration. Never values, never the body, never the secret.
 func (e *Embassy) logInvocation(inv *invocation, envelope resultEnvelope) {
-	e.logger().Info("rootcause action executed",
+	e.logger().Info("replypen action executed",
 		"action_id", inv.ActionID,
 		"digest", inv.ScriptDigest,
 		"param_keys", paramKeys(inv.raw),
@@ -105,7 +105,7 @@ func (e *Embassy) logRefusal(refusal *Error, raw []byte) {
 			attrs = append(attrs, "param_keys", paramKeys(parsed))
 		}
 	}
-	e.logger().Warn("rootcause refused", attrs...)
+	e.logger().Warn("replypen refused", attrs...)
 }
 
 func paramKeys(raw map[string]any) []string {

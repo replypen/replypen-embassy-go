@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rootcause-org/rootcause-embassy-go/internal/uuid"
+	"github.com/replypen/replypen-embassy-go/internal/uuid"
 )
 
 // maxTotalAttachmentBytes is the host's aggregate decoded cap for one trigger.
@@ -45,7 +45,7 @@ type ContextRef struct {
 // ContextRefKindActionRun is the only ContextRef kind the contract defines.
 const ContextRefKindActionRun = "action_run"
 
-// AnalysisRequest asks rootcause to analyze something and answer later over the
+// AnalysisRequest asks ReplyPen to analyze something and answer later over the
 // result route.
 type AnalysisRequest struct {
 	// ProjectID selects the reverse secret in Config.Secrets. It is not duplicated
@@ -56,7 +56,7 @@ type AnalysisRequest struct {
 	Body        string
 	Attachments []Attachment
 	// Metadata is FREE-FORM here (unlike the sent-message route): scalars, small,
-	// no secrets or PII — it transits rootcause and comes back verbatim.
+	// no secrets or PII — it transits ReplyPen and comes back verbatim.
 	Metadata map[string]any
 	// SessionID continues a conversation. Omit on turn 1 and the host mints one;
 	// on a follow-up send ONLY the new message — the host holds the prior turns.
@@ -91,7 +91,7 @@ type Answer struct {
 	Values []string `json:"values"`
 }
 
-// SentMessageRequest hands rootcause what a human actually sent, and/or the
+// SentMessageRequest hands ReplyPen what a human actually sent, and/or the
 // answers to a run's clarifying questions. Both ride the same route and may
 // arrive together or alone.
 type SentMessageRequest struct {
@@ -104,7 +104,7 @@ type SentMessageRequest struct {
 	// is an answers-only capture.
 	SentBody string
 	Sender   string
-	// ProposedBody is what rootcause proposed; omit to treat the reply as pure
+	// ProposedBody is what ReplyPen proposed; omit to treat the reply as pure
 	// signal (the host computes the proposed-vs-sent delta).
 	ProposedBody string
 	Metadata     SentMessageMetadata
@@ -216,7 +216,7 @@ func (e *Embassy) StartAnalysis(ctx context.Context, request AnalysisRequest) (A
 	if err := json.Unmarshal(body, &analysis); err != nil || analysis.AnalysisID == "" {
 		return Analysis{}, causedError("ANALYSIS_RESPONSE_INVALID", err).WithDetail("the response omitted analysis_id")
 	}
-	e.logger().Info("rootcause analysis triggered",
+	e.logger().Info("replypen analysis triggered",
 		"analysis_id", analysis.AnalysisID,
 		"metadata_keys", sortedKeys(metadata),
 		"attachments", len(attachments),
@@ -225,7 +225,7 @@ func (e *Embassy) StartAnalysis(ctx context.Context, request AnalysisRequest) (A
 	return analysis, nil
 }
 
-// CaptureSentMessage hands rootcause the reply a human actually sent and/or the
+// CaptureSentMessage hands ReplyPen the reply a human actually sent and/or the
 // answers to a prior run's questions. Answers alone are valid — the host re-runs
 // the most recent question-raising run in the session grounded on them and pushes
 // the updated result back over the result route.
@@ -275,7 +275,7 @@ func (e *Embassy) CaptureSentMessage(ctx context.Context, request SentMessageReq
 		}
 	}
 	// Byte counts, never bodies; metadata KEYS, never values.
-	e.logger().Info("rootcause sent-message captured",
+	e.logger().Info("replypen sent-message captured",
 		"session_id", request.SessionID,
 		"sent_bytes", len(request.SentBody),
 		"proposed_bytes", len(request.ProposedBody),

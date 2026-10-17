@@ -9,7 +9,7 @@ package rcerr
 import "strings"
 
 // DocsBaseURL is the public error catalogue; a code's anchor is its lowercase form.
-const DocsBaseURL = "https://github.com/rootcause-org/rootcause-embassy/blob/main/docs/integrator/errors.md#"
+const DocsBaseURL = "https://github.com/replypen/replypen-embassy/blob/main/docs/integrator/errors.md#"
 
 // Error is a stable, customer-facing failure. ErrorCode is exposed through Code()
 // so callers can branch with errors.As without parsing prose.

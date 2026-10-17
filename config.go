@@ -10,7 +10,7 @@ import (
 )
 
 // Version is this Embassy's release, surfaced by the health endpoint.
-const Version = "0.5.0"
+const Version = "0.7.0"
 
 // Protocol is the wire protocol generation. Bumped ONLY on a breaking change:
 // additive fields stay non-breaking because the action/result direction decodes
@@ -22,18 +22,19 @@ const Protocol = 1
 const RuntimeToken = "go"
 
 // placeholderFetchURL is the inert default: reaching a script fetch with it means
-// ROOTCAUSE_FETCH_URL was never set. Caught at boot, not on the first invocation.
-const placeholderFetchURL = "https://rootcause.invalid/actions/script"
+// REPLYPEN_FETCH_URL was never set. Caught at boot, not on the first invocation.
+const placeholderFetchURL = "https://replypen.invalid/actions/script"
 
 // DefaultChatBaseURL is the public ReplyPen application origin.
 const DefaultChatBaseURL = "https://app.replypen.com"
 
 // Config is set once at boot and treated as immutable afterwards. Every string
-// field falls back to its ROOTCAUSE_* environment variable when left empty.
+// field left empty falls back to its REPLYPEN_* environment variable, then to the
+// legacy ROOTCAUSE_* twin.
 type Config struct {
 	// Secret is the per-project action_reverse_secret: the HMAC key for BOTH the
 	// action and analysis planes. Never the chat webhook_secret, never the API key,
-	// and no fallback in any direction. Env: ROOTCAUSE_ACTION_SECRET.
+	// and no fallback in any direction. Env: REPLYPEN_ACTION_SECRET.
 	Secret string
 
 	// Secrets selects the action_reverse_secret by project UUID for a shared
@@ -44,33 +45,33 @@ type Config struct {
 	Secrets map[string]string
 
 	// FetchURL is the host's script-by-digest endpoint, hit on a cache miss.
-	// Env: ROOTCAUSE_FETCH_URL.
+	// Env: REPLYPEN_FETCH_URL.
 	FetchURL string
 
 	// TriggerURL is where StartAnalysis POSTs, e.g.
-	// "https://app.replypen.com/analyses/<project>". Env: ROOTCAUSE_TRIGGER_URL.
+	// "https://app.replypen.com/analyses/<project>". Env: REPLYPEN_TRIGGER_URL.
 	TriggerURL string
 
 	// SentMessageURL is where CaptureSentMessage POSTs (sent replies AND answers to
-	// a run's questions). Env: ROOTCAUSE_SENT_MESSAGE_URL.
+	// a run's questions). Env: REPLYPEN_SENT_MESSAGE_URL.
 	SentMessageURL string
 
 	// APIBaseURL / APIKey wire the generic API plane — a THIRD privilege boundary,
 	// bearer-authed, never the HMAC secret. An `rcor_` key is exchanged for a
 	// short-lived access token; anything else is used verbatim as the bearer.
-	// Env: ROOTCAUSE_API_BASE_URL, ROOTCAUSE_API_KEY.
+	// Env: REPLYPEN_API_BASE_URL, REPLYPEN_API_KEY.
 	APIBaseURL string
 	APIKey     string
 
 	// ChatSecret is the project's webhook_secret, used ONLY to mint embed-chat
 	// tokens. A leaked chat key must not buy action execution, so it must differ
-	// from Secret. Env: ROOTCAUSE_CHAT_SECRET.
+	// from Secret. Env: REPLYPEN_CHAT_SECRET.
 	ChatSecret string
-	// ChatProject is the rootcause project the token is issued for (public — it
-	// ships in the widget tag). Env: ROOTCAUSE_CHAT_PROJECT.
+	// ChatProject is the ReplyPen project the token is issued for (public — it
+	// ships in the widget tag). Env: REPLYPEN_CHAT_PROJECT.
 	ChatProject string
 	// ChatBaseURL is the origin serving the hosted widget loader.
-	// Env: ROOTCAUSE_CHAT_BASE_URL.
+	// Env: REPLYPEN_CHAT_BASE_URL.
 	ChatBaseURL string
 
 	// ResultHandler receives each analysis result callback. It MUST be idempotent:
@@ -99,7 +100,7 @@ type Config struct {
 	// Embassy. A listed action is accepted with no tenant tuple at all; a partial
 	// tuple still refuses, and every unlisted action stays strict. Ids used this way
 	// must be globally unique across the projects sharing the reverse secret.
-	// Env: ROOTCAUSE_TENANTLESS_ACTIONS (comma-separated).
+	// Env: REPLYPEN_TENANTLESS_ACTIONS (comma-separated).
 	TenantlessActions []string
 
 	// CacheDir persists digest-keyed script bodies across restarts. Empty (the
@@ -138,17 +139,17 @@ type Config struct {
 }
 
 func (c *Config) applyDefaults() {
-	c.Secret = orEnv(c.Secret, "ROOTCAUSE_ACTION_SECRET")
-	c.FetchURL = orEnv(c.FetchURL, "ROOTCAUSE_FETCH_URL")
-	c.TriggerURL = orEnv(c.TriggerURL, "ROOTCAUSE_TRIGGER_URL")
-	c.SentMessageURL = orEnv(c.SentMessageURL, "ROOTCAUSE_SENT_MESSAGE_URL")
-	c.APIBaseURL = orEnv(c.APIBaseURL, "ROOTCAUSE_API_BASE_URL")
-	c.APIKey = orEnv(c.APIKey, "ROOTCAUSE_API_KEY")
-	c.ChatSecret = orEnv(c.ChatSecret, "ROOTCAUSE_CHAT_SECRET")
-	c.ChatProject = orEnv(c.ChatProject, "ROOTCAUSE_CHAT_PROJECT")
-	c.ChatBaseURL = orEnv(c.ChatBaseURL, "ROOTCAUSE_CHAT_BASE_URL")
+	c.Secret = orEnv(c.Secret, "ACTION_SECRET")
+	c.FetchURL = orEnv(c.FetchURL, "FETCH_URL")
+	c.TriggerURL = orEnv(c.TriggerURL, "TRIGGER_URL")
+	c.SentMessageURL = orEnv(c.SentMessageURL, "SENT_MESSAGE_URL")
+	c.APIBaseURL = orEnv(c.APIBaseURL, "API_BASE_URL")
+	c.APIKey = orEnv(c.APIKey, "API_KEY")
+	c.ChatSecret = orEnv(c.ChatSecret, "CHAT_SECRET")
+	c.ChatProject = orEnv(c.ChatProject, "CHAT_PROJECT")
+	c.ChatBaseURL = orEnv(c.ChatBaseURL, "CHAT_BASE_URL")
 	if len(c.TenantlessActions) == 0 {
-		c.TenantlessActions = splitEnvList("ROOTCAUSE_TENANTLESS_ACTIONS")
+		c.TenantlessActions = splitEnvList("TENANTLESS_ACTIONS")
 	}
 
 	if c.FetchURL == "" {
@@ -348,8 +349,8 @@ func isAbsoluteHTTPURL(raw string) bool {
 
 // splitEnvList reads a comma-separated env list, trimming each entry. A blank
 // entry is kept so validation refuses the typo instead of quietly dropping it.
-func splitEnvList(key string) []string {
-	raw := strings.TrimSpace(os.Getenv(key))
+func splitEnvList(name string) []string {
+	raw := strings.TrimSpace(env(name))
 	if raw == "" {
 		return nil
 	}
@@ -360,9 +361,18 @@ func splitEnvList(key string) []string {
 	return parts
 }
 
-func orEnv(value, key string) string {
+func orEnv(value, name string) string {
 	if value != "" {
 		return value
 	}
-	return os.Getenv(key)
+	return env(name)
+}
+
+// env reads REPLYPEN_<name>, falling back to the legacy ROOTCAUSE_<name> that
+// deployed integrations still set. An empty value counts as unset.
+func env(name string) string {
+	if v := os.Getenv("REPLYPEN_" + name); v != "" {
+		return v
+	}
+	return os.Getenv("ROOTCAUSE_" + name)
 }

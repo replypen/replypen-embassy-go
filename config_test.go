@@ -124,9 +124,9 @@ func TestPartialPlaneConfigStillFailsClosed(t *testing.T) {
 }
 
 func TestConfigEnvFallback(t *testing.T) {
-	t.Setenv("ROOTCAUSE_ACTION_SECRET", "from-env")
-	t.Setenv("ROOTCAUSE_FETCH_URL", "https://app.replypen.com/actions/script")
-	t.Setenv("ROOTCAUSE_TRIGGER_URL", "https://app.replypen.com/analyses/demo")
+	t.Setenv("REPLYPEN_ACTION_SECRET", "from-env")
+	t.Setenv("REPLYPEN_FETCH_URL", "https://app.replypen.com/actions/script")
+	t.Setenv("REPLYPEN_TRIGGER_URL", "https://app.replypen.com/analyses/demo")
 
 	emb, err := New(Config{})
 	if err != nil {
@@ -140,6 +140,32 @@ func TestConfigEnvFallback(t *testing.T) {
 	emb, err = New(Config{Secret: "explicit"})
 	if err != nil || emb.Config().Secret != "explicit" {
 		t.Fatalf("explicit config lost to the environment: %v", err)
+	}
+}
+
+// Deployed integrations still set the pre-rename names; REPLYPEN_* wins when both exist.
+func TestConfigLegacyEnvFallback(t *testing.T) {
+	t.Setenv("ROOTCAUSE_ACTION_SECRET", "legacy")
+	t.Setenv("ROOTCAUSE_FETCH_URL", "https://app.replypen.com/actions/script")
+	t.Setenv("ROOTCAUSE_CHAT_SECRET", "legacy-chat")
+	t.Setenv("ROOTCAUSE_CHAT_PROJECT", "acme")
+
+	emb, err := New(Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg := emb.Config(); cfg.Secret != "legacy" || cfg.ChatSecret != "legacy-chat" || cfg.ChatProject != "acme" {
+		t.Fatalf("legacy env fallback did not apply: project=%q", cfg.ChatProject)
+	}
+
+	t.Setenv("REPLYPEN_ACTION_SECRET", "canonical")
+	t.Setenv("REPLYPEN_CHAT_PROJECT", "acme-new")
+	emb, err = New(Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg := emb.Config(); cfg.Secret != "canonical" || cfg.ChatProject != "acme-new" || cfg.ChatSecret != "legacy-chat" {
+		t.Fatalf("REPLYPEN_* must win per variable: project=%q", cfg.ChatProject)
 	}
 }
 
@@ -198,8 +224,8 @@ func TestTenantlessActionsKnob(t *testing.T) {
 }
 
 func TestTenantlessActionsEnvFallback(t *testing.T) {
-	t.Setenv("ROOTCAUSE_ACTION_SECRET", "s3cret")
-	t.Setenv("ROOTCAUSE_FETCH_URL", "https://app.replypen.com/actions/script")
+	t.Setenv("REPLYPEN_ACTION_SECRET", "s3cret")
+	t.Setenv("REPLYPEN_FETCH_URL", "https://app.replypen.com/actions/script")
 	t.Setenv("ROOTCAUSE_TENANTLESS_ACTIONS", "staff_flat_action, staff_other_action")
 
 	emb, err := New(Config{RequireTenantContext: true})

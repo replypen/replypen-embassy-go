@@ -100,7 +100,7 @@ func (e *Embassy) receiveResult(ctx context.Context, raw []byte, signature strin
 		// we can dedupe. A duplicate here is our own retry, absorbed with the same
 		// signed 200 the first delivery got — refusing it would make the host retry
 		// forever against a healthy Embassy.
-		e.logger().Info("rootcause result redelivery acked", "analysis_id", payload.AnalysisID)
+		e.logger().Info("replypen result redelivery acked", "analysis_id", payload.AnalysisID)
 		return http.StatusOK, ackEnvelope{OK: true}, secret
 	}
 
@@ -113,11 +113,11 @@ func (e *Embassy) receiveResult(ctx context.Context, raw []byte, signature strin
 		if errors.As(err, &refusal) {
 			return e.resultRefusal(refusal, secret)
 		}
-		e.logger().Error("rootcause result handler failed", "analysis_id", payload.AnalysisID, "error_type", typeName(err))
+		e.logger().Error("replypen result handler failed", "analysis_id", payload.AnalysisID, "error_type", typeName(err))
 		return http.StatusInternalServerError, refusalEnvelope{Error: wireRefusal(actionError(500, ClassInternalError, typeName(err)))}, secret
 	}
 
-	e.logger().Info("rootcause result dispatched",
+	e.logger().Info("replypen result dispatched",
 		"analysis_id", payload.AnalysisID,
 		"metadata_keys", sortedKeys(payload.Metadata),
 		"ok", payload.Decline == nil,

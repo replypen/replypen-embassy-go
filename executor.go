@@ -91,10 +91,12 @@ func Invoke() {
 `
 
 const (
-	embassyPkgKey  = "github.com/rootcause-org/rootcause-embassy-go/embassy"
-	bridgePkgKey   = "rcbridge/rcbridge"
-	symbolsPkgKey  = "rcsymbols/rcsymbols"
-	invokeExprText = "rcrun.Invoke()"
+	embassyPkgKey = "github.com/replypen/replypen-embassy-go/embassy"
+	// Scripts already pinned by digest import the pre-rename module path.
+	legacyEmbassyPkgKey = "github.com/rootcause-org/rootcause-embassy-go/embassy"
+	bridgePkgKey        = "rcbridge/rcbridge"
+	symbolsPkgKey       = "rcsymbols/rcsymbols"
+	invokeExprText      = "rcrun.Invoke()"
 )
 
 // program is one interpreter that has already parsed a specific script body, plus
@@ -274,12 +276,14 @@ func (e *executor) compile(script string) (*program, error) {
 	if err := prog.interp.Use(stdlib.Symbols); err != nil {
 		return nil, err
 	}
+	embassySymbols := map[string]reflect.Value{
+		"ActionAPI":        reflect.ValueOf((*ActionAPI)(nil)),
+		"TenantContext":    reflect.ValueOf((*TenantContext)(nil)),
+		"PrincipalContext": reflect.ValueOf((*PrincipalContext)(nil)),
+	}
 	if err := prog.interp.Use(interp.Exports{
-		embassyPkgKey: {
-			"ActionAPI":        reflect.ValueOf((*ActionAPI)(nil)),
-			"TenantContext":    reflect.ValueOf((*TenantContext)(nil)),
-			"PrincipalContext": reflect.ValueOf((*PrincipalContext)(nil)),
-		},
+		embassyPkgKey:       embassySymbols,
+		legacyEmbassyPkgKey: embassySymbols,
 		bridgePkgKey: {
 			// Read through a function, not a variable: yaegi binds an exported var
 			// by value at Use time, so a per-run var would hand the script stale

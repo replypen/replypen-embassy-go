@@ -1,4 +1,4 @@
-module github.com/rootcause-org/rootcause-embassy-go
+module github.com/replypen/replypen-embassy-go
 
 go 1.24
 

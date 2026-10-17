@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	embassy "github.com/rootcause-org/rootcause-embassy-go"
-	"github.com/rootcause-org/rootcause-embassy-go/chat"
+	embassy "github.com/replypen/replypen-embassy-go"
+	"github.com/replypen/replypen-embassy-go/chat"
 )
 
 //go:embed index.html app.js style.css
@@ -38,21 +38,16 @@ type chatToken struct {
 }
 
 func main() {
-	cfg := embassy.Config{
-		ChatSecret:  os.Getenv("ROOTCAUSE_CHAT_SECRET"),
-		ChatProject: os.Getenv("ROOTCAUSE_CHAT_PROJECT"),
-		ChatBaseURL: os.Getenv("ROOTCAUSE_CHAT_BASE_URL"),
-		Secret:      os.Getenv("ROOTCAUSE_ACTION_SECRET"),
-		FetchURL:    os.Getenv("ROOTCAUSE_FETCH_URL"),
-	}
-	emb, err := embassy.New(cfg)
+	// An empty Config reads REPLYPEN_CHAT_*, REPLYPEN_ACTION_SECRET and
+	// REPLYPEN_FETCH_URL (legacy ROOTCAUSE_* names still work).
+	emb, err := embassy.New(embassy.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	principalKind := strings.TrimSpace(os.Getenv("ROOTCAUSE_CHAT_PRINCIPAL_KIND"))
+	principalKind := strings.TrimSpace(envOr("REPLYPEN_CHAT_PRINCIPAL_KIND", os.Getenv("ROOTCAUSE_CHAT_PRINCIPAL_KIND")))
 	if principalKind == "" {
-		log.Fatal("PRINCIPAL_REQUIRED: Set ROOTCAUSE_CHAT_PRINCIPAL_KIND to the kind configured for this project — https://github.com/rootcause-org/rootcause-embassy/blob/main/docs/integrator/errors.md#principal_required")
+		log.Fatal("PRINCIPAL_REQUIRED: Set REPLYPEN_CHAT_PRINCIPAL_KIND to the kind configured for this project — https://github.com/replypen/replypen-embassy/blob/main/docs/integrator/errors.md#principal_required")
 	}
 	appOrigin := envOr("APP_ORIGIN", "http://localhost:8080")
 	if _, err := chat.CanonicalOrigin(appOrigin); err != nil {

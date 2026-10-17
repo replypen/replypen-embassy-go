@@ -39,7 +39,7 @@ type APIResponse struct {
 	Err error
 }
 
-// API is a generic authenticated caller for ANY rootcause endpoint — transport and
+// API is a generic authenticated caller for ANY ReplyPen endpoint — transport and
 // auth only, never per-endpoint wrappers, so a new host endpoint is usable the day
 // it ships with no Embassy release. What endpoints exist is the host's contract.
 type API struct {
@@ -116,7 +116,7 @@ func (a *API) Do(ctx context.Context, method, path string, body any, params url.
 
 	// Verb, PATH and status only — never the bearer, never the body, never the
 	// query string (it can carry identifiers).
-	a.cfg.logger().Info("rootcause api call", "method", method, "path", target.Path, "status", answer.Status)
+	a.cfg.logger().Info("replypen api call", "method", method, "path", target.Path, "status", answer.Status)
 
 	parsed := parseAPIBody(answer.Body)
 	if answer.Status >= 200 && answer.Status <= 299 {

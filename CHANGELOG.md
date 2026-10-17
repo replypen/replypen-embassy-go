@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+**0.7.0 — renamed to ReplyPen.** Conforms to hub `450e9d8`.
+
+- Module path is now `github.com/replypen/replypen-embassy-go`; the old path stays resolvable at its
+  existing tags (v0.1.0–v0.6.0). Moving = change the `require` and every import.
+- Chat tokens are minted with `aud` `replypen:chat:<project>` (`chat.Audience`); the host accepts the
+  legacy `rootcause:chat:<project>` too. Tests asserting the old string need updating.
+- Config reads `REPLYPEN_*` env first, then the legacy `ROOTCAUSE_*` names; refusal hints name
+  `REPLYPEN_*`. Action scripts may import either module path.
+
 Conforms to hub `b3a9dad`: widget tags use loader `?v=5` for per-message page Markdown and queued
 snapshots. Re-vendored all fixtures, including unsigned page URL normalization cases.
 
