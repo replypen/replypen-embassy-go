@@ -53,8 +53,8 @@ type healthEnvelope struct {
 // ActionHandler serves the action plane. Mount it twice — the invocation route and
 // its health child — because Go's ServeMux matches an exact pattern:
 //
-//	mux.Handle("/rootcause/action", emb.ActionHandler())
-//	mux.Handle("/rootcause/action/health", emb.ActionHandler())
+//	mux.Handle("/replypen/action", emb.ActionHandler())
+//	mux.Handle("/replypen/action/health", emb.ActionHandler())
 func (e *Embassy) ActionHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !e.cfg.actionEnabled() {

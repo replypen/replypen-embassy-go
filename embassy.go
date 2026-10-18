@@ -7,9 +7,9 @@
 // authoritative wire spec that this package conforms to.
 //
 //	emb, err := embassy.New(embassy.Config{ResultHandler: handleResult})
-//	mux.Handle("/rootcause/action", emb.ActionHandler())
-//	mux.Handle("/rootcause/action/health", emb.ActionHandler())
-//	mux.Handle("/rootcause/result", emb.ResultHandler())
+//	mux.Handle("/replypen/action", emb.ActionHandler())
+//	mux.Handle("/replypen/action/health", emb.ActionHandler())
+//	mux.Handle("/replypen/result", emb.ResultHandler())
 package embassy
 
 // Embassy is the configured facade over every plane. Build one at boot and share

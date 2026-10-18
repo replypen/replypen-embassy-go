@@ -39,7 +39,7 @@ action secrets different.
 6. Run the complete public ladder in the
    [integrator verification guide](https://github.com/replypen/replypen-embassy/blob/main/docs/integrator/verify.md),
    including message SSE and a foreign-origin refusal.
-7. When actions are configured, probe `/rootcause/action`, signed `/rootcause/action/health`, then a
+7. When actions are configured, probe `/replypen/action`, signed `/replypen/action/health`, then a
    signed `dry_run:true` invocation before enabling execution.
 
 For a stable error code, its self-fix, and the escalation fields, use the

@@ -85,10 +85,10 @@ for wire vocabulary. Go-specific distinctions:
 
 ## Legacy names kept
 
-- `/rootcause/action`, `/rootcause/result` mount paths — wire contract; the host calls them on deployed apps.
+- `/rootcause/action`, `/rootcause/result` — still valid mounts on deployed apps (host stores full URLs); docs show `/replypen/action|result` (hub decision 28). Tests keep the old paths.
 - `ROOTCAUSE_*` env — read after `REPLYPEN_*` (`config.go` `env`), so deployed integrations keep booting.
 - `github.com/rootcause-org/rootcause-embassy-go` as a yaegi import path — digest-pinned scripts import it.
-- `rcor_`/`rcoa_` token ids, `RC_*` script env, `data-rc-*` attributes, `window.RootCause` — wire / host-owned loader.
+- `rcor_`/`rcoa_` token ids, `RC_*` script env, `data-rc-*` attributes — wire. `window.RootCause` is the loader's permanent alias of `window.ReplyPen`.
 - `internal/rcerr` package name — internal only, not integrator-visible.
 - Legacy `rootcause:chat:` JWT vectors — replayed as verify goldens; mint emits `replypen:chat:`.
 

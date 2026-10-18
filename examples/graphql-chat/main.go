@@ -65,9 +65,9 @@ func main() {
 	mux.HandleFunc("GET /style.css", static("style.css", "text/css; charset=utf-8"))
 	mux.HandleFunc("GET /login", a.login)
 	mux.HandleFunc("POST /graphql", a.graphQL)
-	mux.Handle("/rootcause/action", emb.ActionHandler())
-	mux.Handle("/rootcause/action/health", emb.ActionHandler())
-	mux.Handle("/rootcause/result", emb.ResultHandler())
+	mux.Handle("/replypen/action", emb.ActionHandler())
+	mux.Handle("/replypen/action/health", emb.ActionHandler())
+	mux.Handle("/replypen/result", emb.ResultHandler())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "actions": emb.ActionPlaneEnabled()})
 	})

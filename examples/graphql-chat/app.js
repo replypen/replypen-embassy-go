@@ -19,7 +19,7 @@
 
   async function refresh() {
     var chat = await mint();
-    window.RootCause("update", { token: chat.token });
+    window.ReplyPen("update", { token: chat.token });
     window.setTimeout(function () { refresh().catch(showError); }, halfLifeMs);
   }
 

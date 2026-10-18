@@ -99,10 +99,15 @@ emb, err := embassy.New(embassy.Config{
 	Symbols: map[string]any{"DB": db, "Mailer": mailer},
 })
 
-mux.Handle("/rootcause/action", emb.ActionHandler())
-mux.Handle("/rootcause/action/health", emb.ActionHandler())
-mux.Handle("/rootcause/result", emb.ResultHandler())
+mux.Handle("/replypen/action", emb.ActionHandler())
+mux.Handle("/replypen/action/health", emb.ActionHandler())
+mux.Handle("/replypen/result", emb.ResultHandler())
 ```
+
+ReplyPen stores the mounts as full URLs, so an app already serving the pre-rename `/rootcause/action`,
+`/rootcause/action/health` and `/rootcause/result` keeps working. To move, register the new patterns
+beside the old ones on the same `emb` (one nonce store), deploy, have the operator repoint
+`action_runner_url` / `action_result_url`, and keep the old patterns.
 
 Mounting these routes in a chat-only deployment is safe: they return `ACTION_PLANE_DISABLED` with a
 fix hint and docs link. Both action lines are needed because Go's `ServeMux` matches exact patterns.
@@ -328,7 +333,7 @@ render** — tokens are short-lived and the `jti` is single-use when opening a s
 If the Chat Studio brief has an empty `principal_kinds` list, omit both `Kind` and `ExternalID`; otherwise
 derive both from the authenticated server session and use one kind declared by the brief.
 
-Generated tags use loader `?v=5`. Register `RootCause('boot', {getPageContext: () => markdown})`
+Generated tags use loader `?v=5`. Register `ReplyPen('boot', {getPageContext: () => markdown})`
 before the loader executes to describe the current UI per message. The hosted client preserves
 each submission's snapshot through queueing and retries; context is an untrusted hint.
 See the [page context contract](https://github.com/replypen/replypen-embassy/blob/main/planes/chat.md#page-context-page_url-page_context).

@@ -18,7 +18,7 @@ type ackEnvelope struct {
 // ResultHandler serves the analysis result callback and dispatches to
 // Config.ResultHandler.
 //
-//	mux.Handle("/rootcause/result", emb.ResultHandler())
+//	mux.Handle("/replypen/result", emb.ResultHandler())
 //
 // Your handler MUST be idempotent — upsert by analysis_id or metadata, never
 // blind-insert. An unexpected error is deliberately NOT an ack, so the host
