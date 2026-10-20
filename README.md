@@ -250,6 +250,10 @@ analysis, err := emb.StartAnalysis(ctx, embassy.AnalysisRequest{
 	// chat. Use ONLY the ActionRunID the action stored (at most one ref); the host
 	// authorizes it and the action's manifest must opt in (else CONTEXT_REF_REFUSED).
 	ContextRefs: []embassy.ContextRef{{Kind: embassy.ContextRefKindActionRun, ID: ticket.ActionRunID}},
+	// Optional, needs Principal: env vars so the run calls YOUR API as that user. Same
+	// rules as chat.Claims.Credentials (else CREDENTIALS_INVALID before sending). Held
+	// for THIS run only: mint fresh (TTL ≤ 1 h covering run + retries) on every trigger.
+	Credentials: map[string]string{"ACME_AGENT_TOKEN": mintReadToken(user, time.Hour)},
 })
 // persist analysis.AnalysisID + analysis.SessionID on your record
 ```

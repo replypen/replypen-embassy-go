@@ -35,6 +35,7 @@ var hints = map[string]string{
 	"ANALYSIS_TRIGGER_URL_REQUIRED": "Set REPLYPEN_TRIGGER_URL before starting an analysis.",
 	"ANALYSIS_BODY_REQUIRED":        "Set AnalysisRequest.Body to the text ReplyPen should analyze.",
 	"ANALYSIS_REQUEST_INVALID":      "Use JSON-compatible values in the analysis request.",
+	"CREDENTIALS_INVALID":           "Send AnalysisRequest.Credentials only with a Principal: at most 8 string values (8 KiB total, no NUL) under keys matching ^[A-Z][A-Z0-9_]{0,63}$ not starting with RC_.",
 	"ANALYSIS_RESPONSE_INVALID":     "The analysis response was unusable; capture the status and escalate.",
 	"SENT_MESSAGE_URL_REQUIRED":     "Set REPLYPEN_SENT_MESSAGE_URL before capturing a sent message.",
 	"SENT_MESSAGE_CONTENT_REQUIRED": "Set SentBody, Answers, or both before capturing a sent message.",
@@ -62,7 +63,7 @@ var hints = map[string]string{
 
 	// Chat plane.
 	"CHAT_BASE_URL_INVALID":     "Set the chat base URL to an absolute http or https origin with no path.",
-	"CHAT_CREDENTIALS_INVALID":  "Use at most 8 Claims.Credentials entries (8 KiB total) with keys matching ^[A-Z][A-Z0-9_]{0,63}$ and not starting with RC_.",
+	"CHAT_CREDENTIALS_INVALID":  "Use at most 8 Claims.Credentials entries (8 KiB total, no NUL) with keys matching ^[A-Z][A-Z0-9_]{0,63}$ and not starting with RC_.",
 	"CHAT_SECRET_REQUIRED":      "Set REPLYPEN_CHAT_SECRET to the project's chat signing secret.",
 	"CHAT_SECRET_REUSED":        "Use a chat signing secret that differs from REPLYPEN_ACTION_SECRET and from every Config.Secrets value.",
 	"CHAT_PROJECT_REQUIRED":     "Set the public ReplyPen project slug on REPLYPEN_CHAT_PROJECT, Claims.Project, or Widget.Project.",

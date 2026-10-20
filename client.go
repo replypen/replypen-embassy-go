@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/replypen/replypen-embassy-go/internal/credentials"
 	"github.com/replypen/replypen-embassy-go/internal/uuid"
 )
 
@@ -67,6 +68,12 @@ type AnalysisRequest struct {
 	// Tenant binds the run by slug on a tenant-enabled project.
 	Tenant    string
 	Principal *Principal
+	// Credentials is env name → user-scoped token for your own API, minted
+	// server-side for exactly Principal (required with it) with a TTL covering the
+	// run plus retries (≤ 1 h). Held for THIS run only: pass fresh ones on every
+	// follow-up. Same rules as chat.Claims.Credentials; values are never logged.
+	// Needs a host that knows the field (an older host answers 400).
+	Credentials map[string]string
 }
 
 // Analysis is the host's 202: the run id to persist alongside your resource, the
@@ -122,16 +129,17 @@ type SentMessage struct {
 // Wire shapes. Field order matches the hub goldens; omitempty keeps optional
 // claims OMITTED rather than nulled.
 type triggerPayload struct {
-	Subject     string         `json:"subject"`
-	Body        string         `json:"body"`
-	Attachments []Attachment   `json:"attachments"`
-	Metadata    map[string]any `json:"metadata"`
-	SessionID   string         `json:"session_id,omitempty"`
-	ContextRefs []ContextRef   `json:"context_refs,omitempty"`
-	Principal   *Principal     `json:"principal,omitempty"`
-	Nonce       string         `json:"nonce"`
-	IssuedAt    string         `json:"issued_at"`
-	Tenant      string         `json:"tenant,omitempty"`
+	Subject     string            `json:"subject"`
+	Body        string            `json:"body"`
+	Attachments []Attachment      `json:"attachments"`
+	Metadata    map[string]any    `json:"metadata"`
+	SessionID   string            `json:"session_id,omitempty"`
+	ContextRefs []ContextRef      `json:"context_refs,omitempty"`
+	Principal   *Principal        `json:"principal,omitempty"`
+	Credentials map[string]string `json:"credentials,omitempty"`
+	Nonce       string            `json:"nonce"`
+	IssuedAt    string            `json:"issued_at"`
+	Tenant      string            `json:"tenant,omitempty"`
 }
 
 type sentMessagePayload struct {
@@ -182,6 +190,9 @@ func (e *Embassy) StartAnalysis(ctx context.Context, request AnalysisRequest) (A
 	if err := checkContextRefs(request.ContextRefs); err != nil {
 		return Analysis{}, err
 	}
+	if !credentials.Valid(request.Credentials) || (len(request.Credentials) > 0 && request.Principal == nil) {
+		return Analysis{}, publicError("CREDENTIALS_INVALID")
+	}
 
 	attachments := request.Attachments
 	if attachments == nil {
@@ -200,6 +211,7 @@ func (e *Embassy) StartAnalysis(ctx context.Context, request AnalysisRequest) (A
 		SessionID:   request.SessionID,
 		ContextRefs: request.ContextRefs,
 		Principal:   request.Principal,
+		Credentials: request.Credentials,
 		Nonce:       e.cfg.Nonce(),
 		IssuedAt:    e.issuedAt(),
 		Tenant:      request.Tenant,
@@ -221,6 +233,7 @@ func (e *Embassy) StartAnalysis(ctx context.Context, request AnalysisRequest) (A
 		"metadata_keys", sortedKeys(metadata),
 		"attachments", len(attachments),
 		"context_refs", len(request.ContextRefs),
+		"credentials", len(request.Credentials),
 	)
 	return analysis, nil
 }

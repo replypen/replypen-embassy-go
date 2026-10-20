@@ -19,10 +19,10 @@ import (
 	"html"
 	"net"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
+	"github.com/replypen/replypen-embassy-go/internal/credentials"
 	"github.com/replypen/replypen-embassy-go/internal/rcerr"
 	"github.com/replypen/replypen-embassy-go/internal/uuid"
 )
@@ -52,11 +52,9 @@ const (
 // Credentials limits. The host re-checks every rule and refuses the session open,
 // so refusing here surfaces the mistake at mint instead of in a browser.
 const (
-	MaxCredentials      = 8
-	MaxCredentialsBytes = 8 << 10
+	MaxCredentials      = credentials.MaxEntries
+	MaxCredentialsBytes = credentials.MaxBytes
 )
-
-var credentialKey = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
 
 // Claims is what the token asserts. Every field is inside the signature, so a
 // swapped tenant or origin is a broken token.
@@ -143,8 +141,8 @@ func MintEmbedToken(secret string, claims Claims) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := validateCredentials(claims.Credentials); err != nil {
-		return "", err
+	if !credentials.Valid(claims.Credentials) {
+		return "", refusal("CHAT_CREDENTIALS_INVALID")
 	}
 	ttl := claims.TTL
 	if ttl == 0 {
@@ -207,25 +205,6 @@ func signHS256(secret, signingInput string) string {
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(signingInput))
 	return b64(mac.Sum(nil))
-}
-
-func validateCredentials(credentials map[string]string) error {
-	if len(credentials) == 0 {
-		return nil
-	}
-	if len(credentials) > MaxCredentials {
-		return refusal("CHAT_CREDENTIALS_INVALID")
-	}
-	for key := range credentials {
-		if !credentialKey.MatchString(key) || strings.HasPrefix(key, "RC_") {
-			return refusal("CHAT_CREDENTIALS_INVALID")
-		}
-	}
-	encoded, err := json.Marshal(credentials)
-	if err != nil || len(encoded) > MaxCredentialsBytes {
-		return refusal("CHAT_CREDENTIALS_INVALID")
-	}
-	return nil
 }
 
 // Audience is the `aud` minted for a project's embed token. The host also still

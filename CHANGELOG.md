@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+**0.8.0 — analysis credentials.** Conforms to hub `9aa0bfc` (decision 29).
+
+- `AnalysisRequest.Credentials` sends the optional per-run `credentials` map: the chat claim's rules
+  (now one validator, `internal/credentials`, shared with `chat`) plus "requires a `Principal`", else
+  `CREDENTIALS_INVALID` before sending. Omitted when empty. Needs a host that knows the field (an
+  older host answers `400`). Re-vendored fixtures incl. `analysis/trigger_with_credentials.json`.
+- Credential values containing NUL are refused (chat token too: `CHAT_CREDENTIALS_INVALID`), matching the host.
+
 **0.7.0 — renamed to ReplyPen.** Conforms to hub `450e9d8`.
 
 - Module path is now `github.com/replypen/replypen-embassy-go`; the old path stays resolvable at its

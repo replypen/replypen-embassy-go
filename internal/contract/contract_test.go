@@ -1326,6 +1326,42 @@ func TestOutboundSerializationMatchesGoldens(t *testing.T) {
 		assertOutbound(t, host, fixture(t, "analysis/trigger_with_context_refs.json"))
 	})
 
+	t.Run("trigger_with_credentials", func(t *testing.T) {
+		host := newFakeHost(t, goScript)
+		host.response = string(fixture(t, "analysis/trigger_response.json"))
+		emb := newEmbassy(t, host, func(cfg *embassy.Config) {
+			cfg.Nonce = func() string { return "contract-nonce-trigger-credentials" }
+		})
+
+		_, err := emb.StartAnalysis(t.Context(), embassy.AnalysisRequest{
+			Subject:   "Camp dashboard shows no registrations",
+			Body:      "Since this morning my dashboard lists zero registrations for the summer camp.",
+			Metadata:  map[string]any{"resource_type": "SupportTicket", "resource_id": "42"},
+			SessionID: sessionID,
+			Tenant:    "acme",
+			Principal: &embassy.Principal{
+				Kind:       "acme_user",
+				ExternalID: "user-8f3",
+				AssertedBy: "acme",
+				Assurance:  "customer_backend_jwt",
+				TenantHint: "acme",
+			},
+			Credentials: map[string]string{
+				"ACME_AGENT_TOKEN": "acme-agent-token-8f3",
+				"ACME_API_BASE":    "https://api.acme.example",
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		golden := fixture(t, "analysis/trigger_with_credentials.json")
+		assertOutbound(t, host, golden)
+		// encoding/json sorts map keys, which is the golden's credentials order.
+		if want := `"credentials":{"ACME_AGENT_TOKEN":"acme-agent-token-8f3","ACME_API_BASE":"https://api.acme.example"}`; !bytes.Contains(host.lastBody, []byte(want)) || !bytes.Contains(golden, []byte(want)) {
+			t.Fatalf("credentials bytes differ from the golden: %s", host.lastBody)
+		}
+	})
+
 	t.Run("sent_message", func(t *testing.T) {
 		host := newFakeHost(t, goScript)
 		emb := newEmbassy(t, host, func(cfg *embassy.Config) {

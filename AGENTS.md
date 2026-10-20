@@ -51,6 +51,7 @@ for wire vocabulary. Go-specific distinctions:
 | `chat/` | embed-token minting + the widget tag (a DIFFERENT key: `ChatSecret`) |
 | `internal/rcerr/` | the ONE `Error` definition and the ONE code→hint table, shared with `chat/` |
 | `internal/uuid/` | nonce and `jti` generation, shared with `chat/` |
+| `internal/credentials/` | the one `credentials` rule check, shared by `chat/` and `StartAnalysis` |
 | `internal/contract/` | the conformance suite + vendored hub fixtures |
 
 ## Rules

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -116,6 +117,35 @@ func TestStartAnalysisValidatesBeforeSending(t *testing.T) {
 			name:     "malformed context ref id",
 			request:  AnalysisRequest{Body: "x", ContextRefs: []ContextRef{{Kind: "action_run", ID: "run-42"}}},
 			wantCode: "ANALYSIS_REQUEST_INVALID",
+		},
+		{
+			name:     "credentials without a principal",
+			request:  AnalysisRequest{Body: "x", Credentials: map[string]string{"ACME_TOKEN": "t"}},
+			wantCode: "CREDENTIALS_INVALID",
+		},
+		{
+			name: "RC_ credential key",
+			request: AnalysisRequest{Body: "x", Principal: &Principal{Kind: "acme_user", ExternalID: "u1"},
+				Credentials: map[string]string{"RC_TOKEN": "t"}},
+			wantCode: "CREDENTIALS_INVALID",
+		},
+		{
+			name: "lowercase credential key",
+			request: AnalysisRequest{Body: "x", Principal: &Principal{Kind: "acme_user", ExternalID: "u1"},
+				Credentials: map[string]string{"acme": "t"}},
+			wantCode: "CREDENTIALS_INVALID",
+		},
+		{
+			name: "NUL in a credential value",
+			request: AnalysisRequest{Body: "x", Principal: &Principal{Kind: "acme_user", ExternalID: "u1"},
+				Credentials: map[string]string{"ACME": "a\x00b"}},
+			wantCode: "CREDENTIALS_INVALID",
+		},
+		{
+			name: "oversized credentials",
+			request: AnalysisRequest{Body: "x", Principal: &Principal{Kind: "acme_user", ExternalID: "u1"},
+				Credentials: map[string]string{"BIG": strings.Repeat("x", 8<<10)}},
+			wantCode: "CREDENTIALS_INVALID",
 		},
 		{
 			name:     "malformed base64",

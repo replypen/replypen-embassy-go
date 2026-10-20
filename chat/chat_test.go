@@ -119,6 +119,7 @@ func TestMintRefusals(t *testing.T) {
 				c.Credentials[fmt.Sprintf("KEY_%d", i)] = "x"
 			}
 		}, code: "CHAT_CREDENTIALS_INVALID"},
+		{name: "NUL in a credential value", secret: secret, mutate: func(c *chat.Claims) { c.Credentials = map[string]string{"ACME": "a\x00b"} }, code: "CHAT_CREDENTIALS_INVALID"},
 		{name: "credentials over 8 KiB", secret: secret, mutate: func(c *chat.Claims) {
 			c.Credentials = map[string]string{"BIG": strings.Repeat("x", chat.MaxCredentialsBytes)}
 		}, code: "CHAT_CREDENTIALS_INVALID"},
