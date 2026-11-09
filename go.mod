@@ -1,5 +1,5 @@
 module github.com/replypen/replypen-embassy-go
 
-go 1.24
+go 1.27
 
 require github.com/traefik/yaegi v0.16.1
